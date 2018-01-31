@@ -1,8 +1,8 @@
 package main
 
 import (
-    "fmt"
-    "log"
+	"fmt"
+	"log"
 	"net/http"
 	"encoding/json"
 	"github.com/gorilla/mux"
@@ -11,17 +11,15 @@ import (
 )
 
 type User struct {
-
-	Id int `json:"id"`
-	Age int `json:"age"`
+	Id        int    `json:"id"`
+	Age       int    `json:"age"`
 	FirstName string `json:"first_name"`
-	LastName string `json:"last_name"`
-	Email string `json:"email"`
-
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
 }
 
 func main() {
- 
+
 	fmt.Println("Rest API - Mux Routers and Postgres")
 	handleRequests()
 
@@ -30,45 +28,37 @@ func main() {
 func handleRequests() {
 
 	myRouter := mux.NewRouter().StrictSlash(true)
-	myRouter.HandleFunc("/sql", returnSql)
+	myRouter.HandleFunc("users/all", allUsers)
 	log.Fatal(http.ListenAndServe(":8080", myRouter))
 
 }
 
-func returnSql(w http.ResponseWriter, r *http.Request){
+func allUsers(w http.ResponseWriter, _ *http.Request) {
 
-	db, err := sql.Open("postgres", "postgres://rqwybmmu:bwR6Z9xXSt1CC5LyJPDHKXXDKTGVEBo_@baasu.db.elephantsql.com:5432/rqwybmmu")
-	
-	checkErr(err)
+	db:= connect()
 
-	fmt.Println("Connected")
-
-	defer db.Close()
-
-	rows, err := db.Query("select * from users")
-
-	checkErr(err)
+	rows := executeQuery(db, "select * from users")
 
 	user := &User{}
 
-	for (rows.Next()) {
-		
+	for rows.Next() {
+
 		var id int
 		var age int
-		var first_name string
-		var last_name string
+		var firstName string
+		var lastName string
 		var email string
 
-		err = rows.Scan(&id, &age, &first_name, &last_name, &email)
-		
+		err := rows.Scan(&id, &age, &firstName, &lastName, &email)
+
 		checkErr(err)
-		
+
 		user = &User{
-			Id: id,
-			Age: age,
-			FirstName: first_name,
-			LastName: last_name,
-			Email: email,
+			Id:        id,
+			Age:       age,
+			FirstName: firstName,
+			LastName:  lastName,
+			Email:     email,
 		}
 
 	}
@@ -76,10 +66,29 @@ func returnSql(w http.ResponseWriter, r *http.Request){
 	json.NewEncoder(w).Encode(user)
 
 }
+func executeQuery(db *sql.DB, query string) (*sql.Rows) {
+
+	rows, e := db.Query(query)
+	checkErr(e)
+
+	return rows
+
+}
+
+func connect() (*sql.DB) {
+
+	db, err := sql.Open("postgres", "postgres://rqwybmmu:bwR6Z9xXSt1CC5LyJPDHKXXDKTGVEBo_@baasu.db.elephantsql.com:5432/rqwybmmu")
+	checkErr(err)
+	fmt.Println("Connected")
+	defer db.Close()
+
+	return db
+
+}
 
 func checkErr(err error) {
 
-	if (err != nil) {
+	if err != nil {
 
 		panic(err)
 
